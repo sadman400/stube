@@ -18,7 +18,7 @@ const DB_NAME = require("../constants.js");
 const connectDB = async () => {
     try {
         
-        const connectInstance = await mongoose.connect(process.env.MONGODB_URL);
+        const connectInstance = await mongoose.connect(process.env.MONGODB_URI);
         console.log(`\n Mongodb connected! db host: ${connectInstance.connection.host}`);
 
     } catch (error) {
