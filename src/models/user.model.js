@@ -1,8 +1,8 @@
-const mongoose = require("mongoose");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcrypt");
+import mongoose, {Schema} from "mongoose";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-const userSchema = new mongoose.Schema({
+const userSchema = new Schema({
 
     username: {
         type: String,
@@ -12,7 +12,6 @@ const userSchema = new mongoose.Schema({
         trim: true,
         index: true
     },
-
     email: {
         type: String,
         required: true,
@@ -23,53 +22,54 @@ const userSchema = new mongoose.Schema({
     fullName: {
         type: String,
         required: true,
-        index: true,
-        trim: true
+        trim: true,
+        index: true
     },
     avatar: {
-        type: String,  // cloudinary url
-        required: true,
+        type: String,
+        required: true
     },
     coverImage: {
-        type: String, // cloudinary url
+        type: String,
     },
     watchHistory: [
         {
-            type: mongoose.Schema.Types.ObjectId,
+            type: Schema.Types.ObjectId,
             ref: "Video"
         }
     ],
     password: {
         type: String,
-        required: [true, "Password is required"]
+        required: true
     },
     refreshToken: {
         type: String
     }
 
+}, {timestamps: true} /** this automatically created (createdAt, updatedAt) **/);
 
-}, {timestamps: true});
-
-// password increpting 
+// bcrypt part 
 userSchema.pre("save", async function(next) {
-    if(!this.isModified("password")) return next();
+    if (!this.isModified("password")) {
+        return next();
+    }
+    this.password = await bcrypt.hash(this.password, 10);
+    next();
+});
 
-    this.password = await bcrypt.hash(this.password, 10)
-    next()
-})
-
-// increpted password checking 
-userSchema.methods.isPasswordCorrect = async function(password) {
-    return await bcrypt.compare(password, this.password)
+userSchema.methods.isPasswordCurrect = async function(password) {
+    return await bcrypt.compare(password, this.password);
 }
+// bcrypt part 
 
+// jwt part 
 userSchema.methods.generateAccessToken = function() {
-    return jwt.sign (
+    jwt.sign(
         {
             _id: this._id,
             email: this.email,
             username: this.username,
-            fullname: this.fullName
+            fullName: this.fullName
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
@@ -77,18 +77,17 @@ userSchema.methods.generateAccessToken = function() {
         }
     )
 }
+
 userSchema.methods.generateRefreshToken = function() {
-    return jwt.sign (
+    jwt.sign(
         {
-            _id: this._id,
+            _id: this._id
         },
-        process.env.REFERESH_TOKEN_SECRET,
+        process.env.REFRESH_TOKEN_SECRET,
         {
-            expiresIn: process.env.REFERESH_TOKEN_EXPIRY
+            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
 }
 
-const User = mongoose.model("User", userSchema);
-
-module.exports = User;
+export const User = mongoose.model("User", userSchema);
